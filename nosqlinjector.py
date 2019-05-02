@@ -1,33 +1,11 @@
 import socket, sys
+import argparse
 from thread import *
 
-def proxy_server(webserver, port, conn, addr, data):
-  try:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((webserver, port))
-    s.send(data)
-
-    while True:
-      print 'in cycle'
-      reply = s.recv(buffer_size)
-
-      if (len(reply) > 0):
-        conn.send(reply)
-        dar = float(len(reply))
-        dar = float(dar / 1024)
-        dar = '%.3s' % (str(dar))
-        dar = '%s KB' % (dar)        
-        print '[*] Request done: %s => %s <=' % (str(addr[0]), str(dar))
-      else:
-        break
-    s.close()
-    conn.close()
-  except socket.error, (value, message):
-    print '[*] Proxy server error:'
-    print '%s %s' % (value, message)
-    s.close()
-    conn.close()
-    sys.exit(2)
+sys.path.insert(0, 'lib')
+from qs_injector import inject_qs
+from proxy_server import proxy_server
+from logo import print_logo
 
 def conn_string(conn, data, addr):
   try:
@@ -54,9 +32,7 @@ def conn_string(conn, data, addr):
       port = int((temp[(port_pos + 1):])[:webserver_pos - port_pos - 1])
       webserver = temp[:port_pos]
     
-    print '[*] Before request'
-    print '%s, %s, %s, %s' % (webserver, port, conn, data)
-    proxy_server(webserver, port, conn, addr, data)
+    proxy_server(webserver, port, conn, addr, data, buffer_size)
   except Exception, e:
     print '[*] Exception:'
     print e
@@ -67,7 +43,7 @@ def start():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('', listening_port))
     s.listen(max_conn)
-    print '[*] Initializing socket - Done'
+    print '\n[*] Initializing socket - Done'
     print '[*] Socket binded successfully'
     print '[*] Server started successfully on port [%d]\n' % (listening_port)
   except Exception, e:
@@ -86,8 +62,22 @@ def start():
       sys.exit(1)
   s.close()
 
+def print_options_list():
+  print '[*] proxy port: %i' % listening_port
+  print '[*] inject payload into query parameters %s' % inject_query_params
+
+# main
 try:
-  listening_port = int(raw_input('[*] Enter Listening Port Number: '))
+  print_logo()
+  parser = argparse.ArgumentParser(description='Perform NoSQL injection scan')
+  parser.add_argument('-qs', '--injectqs', 
+    help='inject malicious payload into query string parameters', type=bool, default=False)
+  parser.add_argument('-p', '--port', help='proxy port', type=int, default=8080)
+  args = parser.parse_args()
+  inject_query_params = args.injectqs 
+  listening_port = args.port
+  print '\n[*] NoSQLInjector options:'
+  print_options_list()
 except KeyboardInterrupt:
   print '\n[*] User requested an interrupt'
   print '[*] Application exiting...'
