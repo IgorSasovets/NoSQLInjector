@@ -1,11 +1,16 @@
-def proxy_server(webserver, port, conn, addr, data):
+import socket, sys
+
+def proxy_server(webserver, port, conn, addr, data, buffer_size):
   try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((webserver, port))
     s.send(data)
 
+    first_line = data.split('\n')[0]
+    url = first_line.split(' ')[1]
+    print '[*] Sending request to: %s' % url
+
     while True:
-      print 'in cycle'
       reply = s.recv(buffer_size)
 
       if (len(reply) > 0):

@@ -2,8 +2,9 @@ import socket, sys
 import argparse
 from thread import *
 
+# Importing lib custom modules
 sys.path.insert(0, 'lib')
-from qs_injector import inject_qs
+from qs_injector import form_queries
 from proxy_server import proxy_server
 from logo import print_logo
 
@@ -33,6 +34,9 @@ def conn_string(conn, data, addr):
       webserver = temp[:port_pos]
     
     proxy_server(webserver, port, conn, addr, data, buffer_size)
+
+    if (inject_query_params and len(url.split('?')) == 2):
+      form_queries(webserver, port, conn, addr, data, buffer_size)
   except Exception, e:
     print '[*] Exception:'
     print e
@@ -58,13 +62,14 @@ def start():
       start_new_thread(conn_string, (conn, data, addr))
     except KeyboardInterrupt:
       s.close()
-      print '\n[*] Proxy server is shutting down'
+      print '\n[*] NoSQLInjector is shutting down'
       sys.exit(1)
   s.close()
 
 def print_options_list():
   print '[*] proxy port: %i' % listening_port
-  print '[*] inject payload into query parameters %s' % inject_query_params
+  print '[*] proxy host: %s' % host
+  print '[*] inject payload into query parameters: %s' % inject_query_params
 
 # main
 try:
@@ -73,9 +78,11 @@ try:
   parser.add_argument('-qs', '--injectqs', 
     help='inject malicious payload into query string parameters', type=bool, default=False)
   parser.add_argument('-p', '--port', help='proxy port', type=int, default=8080)
+  parser.add_argument('-host', '--proxyhost', help='proxy host', type=str, default='127.0.0.1')
   args = parser.parse_args()
   inject_query_params = args.injectqs 
   listening_port = args.port
+  host = args.proxyhost
   print '\n[*] NoSQLInjector options:'
   print_options_list()
 except KeyboardInterrupt:
@@ -85,6 +92,5 @@ except KeyboardInterrupt:
 
 max_conn = 10 # Max connection queues to hold
 buffer_size = 4096 # Max Socket buffer size
-host = '127.0.0.1'
 
 start()
